@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Node Quality Dashboard</title>
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f4f6f9; }
+        .card { background: white; padding: 20px; margin: 10px 0; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .score { font-size: 48px; color: #2ecc71; font-weight: bold; }
+        .bad { color: #e74c3c; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .stat { background: #ecf0f1; padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; }
+        .timestamp { color: #7f8c8d; font-size: 14px; }
+        button { background: #3498db; color: white; border: none; padding: 10px 20px; 
+                 border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+    <h1>📊 Network Node Quality Dashboard</h1>
+    <p class="timestamp">Last Updated: {{ data.timestamp }}</p>
+    
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div style="font-size: 18px; color: #7f8c8d;">Quality Score</div>
+                <div class="score">{{ data.quality_score }}/100</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 18px; color: #7f8c8d;">Total Records</div>
+                <div style="font-size: 32px; font-weight: bold;">{{ data.total_records }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid">
+        <div class="stat">
+            <div>🔄 Duplicates</div>
+            <div class="stat-value {% if data.checks.duplicates.count > 0 %}bad{% endif %}">
+                {{ data.checks.duplicates.count }}
+            </div>
+        </div>
+        <div class="stat">
+            <div>❌ Missing Fields</div>
+            <div class="stat-value {% if (data.checks.missing_fields.Node_Name + data.checks.missing_fields.IP_Address + data.checks.missing_fields.Status + data.checks.missing_fields.Location) > 0 %}bad{% endif %}">
+                {{ data.checks.missing_fields.Node_Name + data.checks.missing_fields.IP_Address + data.checks.missing_fields.Status + data.checks.missing_fields.Location }}
+            </div>
+        </div>
+        <div class="stat">
+            <div>⚠️ Invalid IPs</div>
+            <div class="stat-value {% if data.checks.config_drift.invalid_ips_count > 0 %}bad{% endif %}">
+                {{ data.checks.config_drift.invalid_ips_count }}
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3>🔍 Detailed Issues</h3>
+        <ul>
+            <li><strong>Duplicate Node IDs:</strong> {{ data.checks.duplicates.records }}</li>
+            <li><strong>Missing Node Names:</strong> {{ data.checks.missing_fields.Node_Name }}</li>
+            <li><strong>Missing IP Addresses:</strong> {{ data.checks.missing_fields.IP_Address }}</li>
+            <li><strong>Missing Status:</strong> {{ data.checks.missing_fields.Status }}</li>
+            <li><strong>Missing Locations:</strong> {{ data.checks.missing_fields.Location }}</li>
+            <li><strong>Inactive Nodes:</strong> {{ data.checks.inactive_nodes.nodes }}</li>
+        </ul>
+    </div>
+    
+    <button onclick="triggerRepair()">🔧 Run Automated Repair</button>
+    <div id="repairResult" style="margin-top: 10px;"></div>
+    
+    <script>
+        async function triggerRepair() {
+            const response = await fetch('/api/repair', { method: 'POST' });
+            const result = await response.json();
+            document.getElementById('repairResult').innerHTML = 
+                `<div class="card">✅ Repairs Applied: 
+                 ${result.repairs_applied.duplicates_removed} duplicates removed, 
+                 ${result.repairs_applied.missing_fields_filled} missing fields filled, 
+                 ${result.repairs_applied.drift_corrected} IPs corrected</div>`;
+        }
+    </script>
+</body>
+</html>
